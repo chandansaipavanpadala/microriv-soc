@@ -25,7 +25,9 @@ module soc_ram #(
     reg [31:0] mem [0:WORDS-1];
 
     // Safely wrap the word index to avoid out-of-bound array accesses in simulation
+    /* verilator lint_off UNUSEDSIGNAL */
     wire [31:0] word_idx = (addr >> 2) % WORDS;
+    /* verilator lint_on UNUSEDSIGNAL */
 
     // Load compiled firmware hex at startup
     initial begin

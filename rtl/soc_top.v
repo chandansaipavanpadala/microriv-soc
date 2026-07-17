@@ -34,7 +34,7 @@ module soc_top (
     // SIM_OUT:  0x8000_0000 (Console output char write)
     // SIM_EXIT: 0x8000_0004 (Simulation exit status code)
     // =========================================================================
-    wire is_ram      = (cpu_mem_addr >= 32'h0000_0000) && (cpu_mem_addr < 32'h0000_4000);
+    wire is_ram      = (cpu_mem_addr < 32'h0000_4000);
     wire is_sim_out  = (cpu_mem_addr == 32'h8000_0000);
     wire is_sim_exit = (cpu_mem_addr == 32'h8000_0004);
 
@@ -90,6 +90,8 @@ module soc_top (
     // =========================================================================
     // PicoRV32 Core Instantiation
     // =========================================================================
+    /* verilator lint_off PINCONNECTEMPTY */
+    /* verilator lint_off PINMISSING */
     picorv32 #(
         .ENABLE_COUNTERS     (1'b0),
         .ENABLE_COUNTERS64   (1'b0),
@@ -112,6 +114,8 @@ module soc_top (
         .mem_wstrb  (cpu_mem_wstrb),
         .mem_rdata  (cpu_mem_rdata)
     );
+    /* verilator lint_on PINCONNECTEMPTY */
+    /* verilator lint_on PINMISSING */
 
     // =========================================================================
     // System SRAM Instantiation (16KB)

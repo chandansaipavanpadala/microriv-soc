@@ -38,6 +38,9 @@ all: sim
 firmware.hex: ../firmware/firmware.hex
 	$(COPY_HEX)
 
+../firmware/firmware.hex:
+	$(MAKE) -C ../firmware
+
 sim: $(RTL_SRCS) $(TB_SRC)
 	$(VERILATOR) $(VERILATOR_FLAGS) $(RTL_SRCS) $(TB_SRC) --prefix Vsoc_top -Mdir obj_dir
 	$(MAKE) -C obj_dir -f Vsoc_top.mk

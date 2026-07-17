@@ -22,8 +22,36 @@ endif
 
 CC      = $(TOOLCHAIN_PREFIX)gcc
 LD      = $(TOOLCHAIN_PREFIX)ld
-OBJCOPY = $(TOOLCHAIN_PREFIX)objcopy
-OBJDUMP = $(TOOLCHAIN_PREFIX)objdump
+
+# Fallback checks for OBJCOPY
+ifeq ($(shell which $(TOOLCHAIN_PREFIX)objcopy 2>/dev/null),)
+    ifneq ($(shell which riscv64-unknown-elf-objcopy 2>/dev/null),)
+        OBJCOPY = riscv64-unknown-elf-objcopy
+    else ifneq ($(shell which riscv32-unknown-elf-objcopy 2>/dev/null),)
+        OBJCOPY = riscv32-unknown-elf-objcopy
+    else ifneq ($(shell which riscv-none-elf-objcopy 2>/dev/null),)
+        OBJCOPY = riscv-none-elf-objcopy
+    else
+        OBJCOPY = objcopy
+    endif
+else
+    OBJCOPY = $(TOOLCHAIN_PREFIX)objcopy
+endif
+
+# Fallback checks for OBJDUMP
+ifeq ($(shell which $(TOOLCHAIN_PREFIX)objdump 2>/dev/null),)
+    ifneq ($(shell which riscv64-unknown-elf-objdump 2>/dev/null),)
+        OBJDUMP = riscv64-unknown-elf-objdump
+    else ifneq ($(shell which riscv32-unknown-elf-objdump 2>/dev/null),)
+        OBJDUMP = riscv32-unknown-elf-objdump
+    else ifneq ($(shell which riscv-none-elf-objdump 2>/dev/null),)
+        OBJDUMP = riscv-none-elf-objdump
+    else
+        OBJDUMP = objdump
+    endif
+else
+    OBJDUMP = $(TOOLCHAIN_PREFIX)objdump
+endif
 
 # RV32I architecture flags (ensure no compressed instructions or multiplication/division)
 ASFLAGS = -march=rv32i -mabi=ilp32
