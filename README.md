@@ -1,112 +1,97 @@
 # MicroRiv SoC (Phase 1: RISC-V Standalone Core Simulation)
 
-**MicroRiv SoC** is a simulation-first RISC-V mini System-on-Chip (SoC) designed for educational and prototyping purposes. 
+**MicroRiv SoC** is a simulation-first RISC-V mini System-on-Chip (SoC) designed for educational and prototyping purposes.
 
-This repository contains the deliverables for **Phase 1** of the multi-phase project. The objective of Phase 1 is to establish a robust simulation environment to compile a custom RISC-V software binary, execute it on an open-source RISC-V CPU core in a Verilator-based simulation, trace variables, print terminal strings, and handle simulation termination cleanly.
+In this revision of Phase 1, the simulation framework has been converted to a **Verilog-only** code architecture (`.v` files for RTL and Testbench) managed by a unified, cross-platform compilation and execution script (`run.sh`), matching the workflow pattern found in the references.
 
 ---
 
 ## 1. Project Directory Structure
 
-The repository is organized to keep RTL, testbenches, simulation scripts, and firmware isolated, leaving dedicated locations for custom APB-based peripherals (UART, GPIO, Timer, APB Bridge, CDC FIFO) to be dropped in during Phase 2:
+All components are written in Verilog (or python/assembly) and located in the `microriv-soc` folder, leaving placeholders for Phase 2 peripherals:
 
 ```
 microriv-soc/
-├── rtl/                   # System RTL source files
+├── rtl/                   # System RTL Verilog files
 │   ├── picorv32.v         # Open-source PicoRV32 RISC-V core
 │   ├── soc_ram.v          # 16KB Byte-enabled SRAM block (1-wait-state)
 │   └── soc_top.v          # Top-level SoC wrapper (address decoding, memory bus mux)
 ├── tb/                    # Testbench files
-│   └── tb_soc.cpp         # Verilator C++ testbench (clock/reset, trap & exit monitors)
-├── sim/                   # Simulation build and run workspace
-│   └── Makefile           # Cross-platform simulation Makefile (Linux & Windows)
+│   └── tb_soc.v           # [NEW] Verilog-only testbench (clock/reset, VCD trace, watchdog, exit check)
 ├── firmware/              # Bare-metal test firmware source
 │   ├── start.S            # Startup assembly (register computation loop & exit ports)
 │   ├── sections.lds       # Linker script mapping code to memory start (0x0000_0000)
-│   ├── makehex.py         # Python utility to convert binary ELF to $readmemh hex format
-│   └── Makefile           # Firmware compilation Makefile
-└── docs/                  # Architectural documentation
-    └── architecture.md    # Summary of Phase 1 design decisions
+│   └── makehex.py         # Python utility to convert binary ELF to $readmemh hex format
+├── docs/                  # Architectural documentation
+│   └── architecture.md    # Summary of Phase 1 design decisions
+└── run.sh                 # [NEW] Unified bash script to compile firmware, Verilator, and run simulation
 ```
 
 ---
 
-## 2. Key Design Decisions
+## 2. Rationale & Key Architecture Decisions
 
-- **Core Selection**: We utilize **PicoRV32** rather than SERV. PicoRV32's native parallel memory interface is substantially simpler to interface with a standard byte-enabled SRAM block than SERV's bit-serial interface, which speeds up bring-up and simplifies custom APB bridge integration in Phase 2.
-- **Top-Level Address Decoding**: The top-level wrapper (`rtl/soc_top.v`) implements address decoding for the bus:
-  - `0x0000_0000` to `0x0000_3FFF` (16KB) maps to local SRAM.
-  - `0x8000_0000` maps to the simulation console printer (writing a byte here prints it to the console).
-  - `0x8000_0004` maps to simulation termination controls.
-- **Verification Loop**: The test firmware runs a register-based computation loop (adding `5` in each iteration to register `x4` up to `10` times), outputs `"PASS\n"` characters sequentially to the console printer address `0x8000_0000`, and terminates the simulation successfully (returning status code `1`) by writing to address `0x8000_0004`.
-
----
-
-## 3. How to Compile the Firmware
-
-You need a RISC-V cross-compiler toolchain installed on your system (e.g. `riscv64-unknown-elf-gcc` or `riscv32-unknown-elf-gcc`).
-
-1. Navigate to the `firmware/` directory:
-   ```bash
-   cd firmware
-   ```
-2. Compile the startup assembly and generate the memory initialization hex file:
-   ```bash
-   make
-   ```
-   *Note: The Makefile automatically detects which compiler toolchain prefix is installed on your system. If you want to force a specific toolchain, run:*
-   ```bash
-   make TOOLCHAIN_PREFIX=riscv64-unknown-elf-
-   ```
-3. This creates:
-   - `firmware.elf`: Linker-mapped executable.
-   - `firmware.bin`: Raw binary payload.
-   - `firmware.hex`: Hexadecimal format parsed by `$readmemh` (padded to 16KB).
-   - `firmware.dump`: Assembly disassembly for instruction debugging.
+- **Verilog-Only Design (`tb_soc.v`)**: By utilizing Verilator's native timing engine support (`--timing`), the testbench is written entirely in Verilog rather than C++. This aligns the workflow with standard RTL simulation and removes C++ testbench compilation steps.
+- **Unified Simulation Script (`run.sh`)**: All Makefile configurations have been replaced with a unified bash script `run.sh` located in the root of the project. It handles:
+  1. Locating the RISC-V toolchain prefix (e.g. `riscv32-unknown-elf-`, `riscv64-unknown-elf-`).
+  2. Compiling the assembly test code.
+  3. Extracting the raw binary using `objcopy` (with automatic failover handling).
+  4. Converting the binary to a little-endian Verilog HEX file using Python (detecting `python3` or `python`).
+  5. Invoking Verilator with `--binary`, `--timing`, and `--trace` parameters.
+  6. Executing the resulting simulation binary.
 
 ---
 
-## 4. How to Run the Simulation
+## 3. How to Run the Project
 
-You need **Verilator** and **make** installed on your system.
+To run the simulation end-to-end on a Linux target with Verilator and a RISC-V cross-compiler installed:
 
-1. Navigate to the `sim/` directory:
+1. Navigate to the `microriv-soc` root directory:
    ```bash
-   cd sim
+   cd microriv-soc
    ```
-2. Build the simulation binary:
+2. Set execute permissions for the runner script (if needed):
    ```bash
-   make sim
+   chmod +x run.sh
    ```
-3. Run the compiled SoC simulator:
+3. Run the unified simulation script:
    ```bash
-   make run
-   ```
-4. To clean previous compilation artifacts:
-   ```bash
-   make clean
+   ./run.sh
    ```
 
-### Enabling Waveform Generation (VCD)
-To dump internal CPU execution waveforms to `waveform.vcd` for hardware verification, compile and run with `TRACE=1`:
-```bash
-make run TRACE=1
-```
-This produces `waveform.vcd` in the `sim/` folder. You can load this file into **GTKWave** or any VCD viewer to verify signals such as memory accesses, register states, and instruction fetches.
-
----
-
-## 5. Verification of Correct Execution
-
-Upon executing `make run`, you should see the following output in your terminal:
+### Output and Verification
+Upon running the script, you should see the compilation status followed by the testbench execution:
 ```text
-[TB] Starting reset sequence...
-[TB] Reset released. Simulation running...
+==================================================================
+ 1. Compiling test firmware (start.S)
+==================================================================
+  Compiler: riscv32-unknown-elf-gcc
+  Linker:   riscv32-unknown-elf-ld
+  Objcopy:  riscv64-unknown-elf-objcopy
+  Python:    python3
+Firmware compilation complete. Hex output saved to: sim/firmware.hex
+
+==================================================================
+ 2. Compiling RTL and Verilog Testbench with Verilator
+==================================================================
+Verilator compilation complete.
+
+==================================================================
+ 3. Running Simulation
+==================================================================
+[TB] Starting simulation...
+[TB] Reset released. Core executing...
 PASS
-[TB] Simulation exit requested by firmware at cycle 176.
-[TB] Exit code returned: 1
-[TB] SUCCESS: Test firmware executed correctly!
-[TB] Simulation finished at cycle 176.
+[TB] Simulation exit requested by firmware.
+[TB] Exit code:          1
+[TB] SUCCESS: Test program completed successfully!
+==================================================================
+ Simulation Finished
+==================================================================
 ```
 
-If the console outputs `PASS` and finishes with `SUCCESS`, the PicoRV32 core successfully fetched, decoded, and executed instructions, managed loop branching, printed strings, and exited cleanly.
+### Visualizing Waveforms
+The simulation generates a `waveform.vcd` trace inside the `sim/` folder. Load this file in GTKWave to view active execution, register state progressions, and SRAM bus reads/writes:
+```bash
+gtkwave sim/waveform.vcd
+```
