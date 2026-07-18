@@ -229,7 +229,7 @@ module apb_cdc_bridge (
     // 3. Handshake ordering: req_cpu must not re-assert until previous ack_cpu_sync has cleared
     assert_req_handshake_clear: assert property (
         @(posedge clk_cpu) disable iff (!rst_n_cpu)
-        (ack_cpu_sync) |-> !req_cpu
+        (ack_cpu_sync && !req_cpu) |=> !req_cpu
     );
 
     // 4. APB protocol stability - CPU-side: PSEL/PADDR/PWRITE must be stable when PENABLE is asserted
