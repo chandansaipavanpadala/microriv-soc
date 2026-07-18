@@ -1,0 +1,373 @@
+
+17. Printing statistics.
+
+=== clk_divider ===
+
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+        8        - wires
+       10        - wire bits
+        4        - public wires
+        5        - public wire bits
+        3        - ports
+        3        - port bits
+        6   29.566 cells
+        2   20.649   DFFSR
+        3    4.224   INVX1
+        1    4.693   XOR2X1
+
+   Chip area for module '\clk_divider': 29.565900
+     of which used for sequential elements: 20.649200 (69.84%)
+
+=== sync2_stage ===
+
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+        4        - wires
+        4        - wire bits
+        4        - public wires
+        4        - public wire bits
+        3        - ports
+        3        - port bits
+        2   15.956 cells
+        2   15.956   DFFPOSX1
+
+   Chip area for module '\sync2_stage': 15.956200
+     of which used for sequential elements: 15.956200 (100.00%)
+
+=== picorv32_apb_bridge ===
+
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+      229        - wires
+      420        - wire bits
+       16        - public wires
+      207        - public wire bits
+       15        - ports
+      204        - port bits
+      316 1.61E+03 cells
+        1    2.816   AOI21X1
+      103 1.06E+03   DFFSR
+      102  143.606   INVX1
+       97  364.177   MUX2X1
+        3    5.632   NAND2X1
+        1    2.346   NAND3X1
+        1    2.816   NOR3X1
+        5   14.079   OAI21X1
+        3    7.039   OR2X1
+
+   Chip area for module '\picorv32_apb_bridge': 1605.944600
+     of which used for sequential elements: 1063.433800 (66.22%)
+
+=== $paramod\soc_ram\MEM_SIZE=s32'00000000000000000100000000000000 ===
+
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+   399006        - wires
+   526089        - wire bits
+     4105        - public wires
+   131188        - public wire bits
+        8        - ports
+      104        - port bits
+   526006  2.1E+06 cells
+    19071 4.48E+04   AND2X1
+     3278 9.23E+03   AOI21X1
+    72033 2.37E+05   AOI22X1
+   131105 1.05E+06   DFFPOSX1
+   131116 1.85E+05   INVX1
+   131072 4.92E+05   MUX2X1
+     4321 8.11E+03   NAND2X1
+    28433 6.67E+04   NAND3X1
+       52  122.018   NOR2X1
+     3090  8.7E+03   NOR3X1
+     2431  6845.21   OAI21X1
+        4    9.386   OR2X1
+
+   Chip area for module '$paramod\soc_ram\MEM_SIZE=s32'00000000000000000100000000000000': 2103786.487396
+     of which used for sequential elements: 1045968.800497 (49.72%)
+
+=== $paramod\apb_timer\WIDTH=s32'00000000000000000000000000100000 ===
+
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+      391        - wires
+      522        - wire bits
+       13        - public wires
+      144        - public wire bits
+       10        - ports
+       79        - port bits
+      477  1702.62 cells
+        9   21.118   AND2X1
+       36  101.369   AOI21X1
+       63  206.961   AOI22X1
+        1    7.978   DFFPOSX1
+       66  681.424   DFFSR
+       55   77.434   INVX1
+       21   78.842   MUX2X1
+       79  148.299   NAND2X1
+       33   77.435   NAND3X1
+       36   84.474   NOR2X1
+       11   30.974   NOR3X1
+       47  132.343   OAI21X1
+       17    39.89   OR2X1
+        3   14.079   XNOR2X1
+
+   Chip area for module '$paramod\apb_timer\WIDTH=s32'00000000000000000000000000100000': 1702.620400
+     of which used for sequential elements: 689.401700 (40.49%)
+
+=== soc_top ===
+
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+      300        - wires
+      830        - wire bits
+       47        - public wires
+      577        - public wire bits
+        8        - ports
+      101        - port bits
+      358 1.02E+03 cells
+        6   14.079   AND2X1
+       33   92.921   AOI21X1
+       65  213.531   AOI22X1
+       34  271.255   DFFPOSX1
+       76      107   INVX1
+       75   140.79   NAND2X1
+        6   14.079   NAND3X1
+        9   21.118   NOR2X1
+       15   42.237   NOR3X1
+       32   90.106   OAI21X1
+        7   16.425   OR2X1
+        9        - submodules
+        1        -   $paramod$bcf138ce918c59706262222bbad858fcf5590d1f\picorv32
+        1        -   $paramod\apb_timer\WIDTH=s32'00000000000000000000000000100000
+        1        -   $paramod\soc_ram\MEM_SIZE=s32'00000000000000000100000000000000
+        1        -   apb_cdc_bridge
+        1        -   apb_gpio
+        1        -   apb_uart_bridge
+        1        -   clk_divider
+        1        -   icg
+        1        -   picorv32_apb_bridge
+
+   Area for cell type $_DLATCH_N_ is unknown!
+
+   Chip area for module '\soc_top': 1023.543300
+     of which used for sequential elements: 271.255400 (26.50%)
+
+=== $paramod$bcf138ce918c59706262222bbad858fcf5590d1f\picorv32 ===
+
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+     7937        - wires
+    10003        - wire bits
+      174        - public wires
+     2201        - public wire bits
+       27        - ports
+      409        - port bits
+     9310 3.21E+04 cells
+      213  499.804   AND2X1
+      613 1.73E+03   AOI21X1
+      522 1.71E+03   AOI22X1
+     1426 1.14E+04   DFFPOSX1
+      433  609.621   INVX1
+     1070 4.02E+03   MUX2X1
+     1938 3.64E+03   NAND2X1
+      434 1.02E+03   NAND3X1
+      248  581.932   NOR2X1
+      118  332.264   NOR3X1
+     1779 5.01E+03   OAI21X1
+      361  847.086   OR2X1
+       93  436.449   XNOR2X1
+       62  290.966   XOR2X1
+
+   Chip area for module '$paramod$bcf138ce918c59706262222bbad858fcf5590d1f\picorv32': 32098.712100
+     of which used for sequential elements: 11376.770600 (35.44%)
+
+=== apb_gpio ===
+
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+      118        - wires
+      249        - wire bits
+       11        - public wires
+      142        - public wire bits
+       11        - ports
+      142        - port bits
+      171  700.196 cells
+       32  105.123   AOI22X1
+       32  330.387   DFFSR
+       34   47.869   INVX1
+       32  120.141   MUX2X1
+        1    1.877   NAND2X1
+        2    4.693   NAND3X1
+       36   84.474   NOR2X1
+        2    5.632   NOR3X1
+
+   Chip area for module '\apb_gpio': 700.195600
+     of which used for sequential elements: 330.387200 (47.18%)
+
+=== uart ===
+
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+       23        - wires
+       37        - wire bits
+        7        - public wires
+       21        - public wire bits
+        7        - ports
+       21        - port bits
+       25   134.22 cells
+        9   92.921   DFFSR
+        8   11.263   INVX1
+        8   30.035   MUX2X1
+
+   Chip area for module '\uart': 134.219800
+     of which used for sequential elements: 92.921400 (69.23%)
+
+=== apb_uart_bridge ===
+
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+       52        - wires
+      159        - wire bits
+       14        - public wires
+      121        - public wire bits
+        9        - ports
+      102        - port bits
+       48  178.803 cells
+        2    4.693   AND2X1
+        2     6.57   AOI22X1
+        9   92.921   DFFSR
+        6    8.447   INVX1
+        2    7.509   MUX2X1
+       13   24.404   NAND2X1
+        7   16.425   NAND3X1
+        1    2.346   NOR2X1
+        3    8.447   NOR3X1
+        3    7.039   OR2X1
+        1        - submodules
+        1        -   uart
+
+   Chip area for module '\apb_uart_bridge': 178.803300
+     of which used for sequential elements: 92.921400 (51.97%)
+
+=== apb_cdc_bridge ===
+
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+      521        - wires
+      837        - wire bits
+       30        - public wires
+      346        - public wire bits
+       19        - ports
+      205        - port bits
+      731 3.72E+03 cells
+        4    9.386   AND2X1
+        4   11.263   AOI21X1
+        1    3.285   AOI22X1
+      239 2.47E+03   DFFSR
+      237  333.672   INVX1
+      227  852.249   MUX2X1
+        6   11.263   NAND2X1
+        2    4.693   NAND3X1
+        6   16.895   OAI21X1
+        5   11.732   OR2X1
+        2        - submodules
+        2        -   sync2_stage
+
+   Chip area for module '\apb_cdc_bridge': 3722.018300
+     of which used for sequential elements: 2467.579400 (66.30%)
+
+=== icg ===
+
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+        4        - wires
+        4        - wire bits
+        4        - public wires
+        4        - public wire bits
+        3        - ports
+        3        - port bits
+        2    2.346 cells
+        1        -   $_DLATCH_N_
+        1    2.346   AND2X1
+
+   Area for cell type $_DLATCH_N_ is unknown!
+
+   Chip area for module '\icg': 2.346500
+     of which used for sequential elements: 0.000000 (0.00%)
+
+=== design hierarchy ===
+
+        +----------Count including submodules.
+        |        +-Area including submodules.
+        |        | 
+   537454 2.15E+06 soc_top
+     9310 3.21E+04 $paramod$bcf138ce918c59706262222bbad858fcf5590d1f\picorv32
+      477  1702.62 $paramod\apb_timer\WIDTH=s32'00000000000000000000000000100000
+   526006  2.1E+06 $paramod\soc_ram\MEM_SIZE=s32'00000000000000000100000000000000
+      731 3.72E+03 apb_cdc_bridge
+        2   15.956   sync2_stage
+      171  700.196 apb_gpio
+       48  178.803 apb_uart_bridge
+       25   134.22   uart
+        6   29.566 clk_divider
+        2    2.346 icg
+      316 1.61E+03 picorv32_apb_bridge
+
+        +----------Count including submodules.
+        |        +-Area including submodules.
+        |        | 
+   408597        - wires
+   539168        - wire bits
+     4433        - public wires
+   134964        - public wire bits
+      126        - ports
+     1379        - port bits
+        -        - memories
+        -        - memory bits
+        -        - processes
+   537454 2.15E+06 cells
+        1        -   $_DLATCH_N_
+    19306 4.53E+04   AND2X1
+     3965 1.12E+04   AOI21X1
+    72718 2.39E+05   AOI22X1
+   132570 1.06E+06   DFFPOSX1
+      460 4.75E+03   DFFSR
+   132070 1.86E+05   INVX1
+   132529 4.98E+05   MUX2X1
+     6436 1.21E+04   NAND2X1
+    28918 6.79E+04   NAND3X1
+      382  896.363   NOR2X1
+     3240 9.12E+03   NOR3X1
+     4300 1.21E+04   OAI21X1
+      400    938.6   OR2X1
+       96  450.528   XNOR2X1
+       63  295.659   XOR2X1
+        9 2.14E+06 submodules
+        1 3.21E+04   $paramod$bcf138ce918c59706262222bbad858fcf5590d1f\picorv32
+        1  1702.62   $paramod\apb_timer\WIDTH=s32'00000000000000000000000000100000
+        1  2.1E+06   $paramod\soc_ram\MEM_SIZE=s32'00000000000000000100000000000000
+        1 3.75E+03   apb_cdc_bridge
+        1  700.196   apb_gpio
+        1  313.023   apb_uart_bridge
+        1   29.566   clk_divider
+        1    2.346   icg
+        1 1.61E+03   picorv32_apb_bridge
+
+   Area for cell type $_DLATCH_N_ is unknown!
+
+   Chip area for top module '\soc_top': 2145016.369588
+     of which used for sequential elements: 1062406.032997 (49.53%)
+
