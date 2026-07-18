@@ -16,8 +16,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "=================================================================="
-2. echo " 1. Initializing Synthesis Directory"
-==================================================================
+echo " 1. Initializing Synthesis Directory"
+echo "=================================================================="
 cd "$SCRIPT_DIR"
 mkdir -p reports
 
