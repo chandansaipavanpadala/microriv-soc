@@ -97,6 +97,11 @@ rm -rf "$SIM_DIR/obj_dir"
 # --trace: enables waveform VCD dumping
 verilator --binary -j 0 -Wall -Wno-fatal \
     "$RTL_DIR/picorv32.v" \
+    "$RTL_DIR/picorv32_apb_bridge.v" \
+    "$RTL_DIR/apb_uart_bridge.v" \
+    "$RTL_DIR/uart.v" \
+    "$RTL_DIR/apb_gpio.v" \
+    "$RTL_DIR/apb_timer.v" \
     "$RTL_DIR/soc_ram.v" \
     "$RTL_DIR/soc_top.v" \
     "$TB_DIR/tb_soc.v" \

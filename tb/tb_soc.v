@@ -3,8 +3,8 @@
  *
  *  Copyright (C) 2026
  *
- *  Description: Verilog-only testbench for the SoC. Compatible with Verilator 5.x
- *               using --timing and --binary execution mode.
+ *  Description: Verilog-only testbench for the Phase 2 SoC.
+ *               Simulates external wiring by looping GPIO outputs directly to inputs.
  */
 
 `timescale 1 ns / 1 ps
@@ -16,6 +16,14 @@ module tb_soc;
     wire trap;
     wire sim_exit_req;
     wire [31:0] sim_exit_code;
+
+    // GPIO and Timer external signals
+    wire [31:0] gpio_out;
+    wire [31:0] gpio_in;
+    wire        timer_done;
+
+    // Simulate physical loopback on GPIO pins (Input = Output)
+    assign gpio_in = gpio_out;
 
     // Clock generation (50MHz clock -> 20ns period)
     always #10 clk <= ~clk;
@@ -29,20 +37,15 @@ module tb_soc;
         .trap          (trap),
         .sim_exit_req  (sim_exit_req),
         .sim_exit_code (sim_exit_code),
-        
-        // Debug port placeholders
-        .cpu_mem_valid (),
-        .cpu_mem_ready (),
-        .cpu_mem_addr  (),
-        .cpu_mem_wdata (),
-        .cpu_mem_wstrb (),
-        .cpu_mem_rdata ()
+        .gpio_out      (gpio_out),
+        .gpio_in       (gpio_in),
+        .timer_done    (timer_done)
     );
     /* verilator lint_on PINCONNECTEMPTY */
     /* verilator lint_on PINMISSING */
 
     initial begin
-        $display("[TB] Starting simulation...");
+        $display("[TB] Starting Phase 2 simulation...");
         clk = 0;
         resetn = 0;
 

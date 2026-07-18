@@ -1,62 +1,85 @@
-# microriv-soc Architecture & Design Log
+# microriv-soc Architecture & Design Log (Phase 2)
 
-This document captures the architectural decisions and interface definitions for Phase 1 of the **microriv-soc** project. It serves as a guide for carrying the context forward to other development environments and subsequent phases.
+This document captures the architectural decisions, memory mappings, and interface definitions for Phase 2 of the **microriv-soc** project.
 
 ---
 
-## 1. Core Selection: PicoRV32 vs SERV
+## 1. System Block Diagram & Bus Topology
 
-For Phase 1 standalone bring-up in Verilator, **PicoRV32** was chosen over SERV for several reasons:
+Phase 2 replaces the direct-memory-mapped simulation console hack with a standard **AMBA APB3** peripheral bus hierarchy. All modules run on the same clock and reset domain (`clk` and `resetn`).
 
-1. **Memory Interface Simplicity**:
-   - PicoRV32 uses a standard 32-bit parallel bus interface with simple request/acknowledge signals (`mem_valid`, `mem_ready`, `mem_addr`, `mem_wdata`, `mem_wstrb`, `mem_rdata`).
-   - SERV is a bit-serial core. It operates on a bit-serial memory bus, which requires additional complex serial-parallel/parallel-serial transceivers to connect to standard parallel memory systems.
-2. **Integration Complexity**:
-   - PicoRV32 is distributed as a single Verilog file (`picorv32.v`) which simplifies the simulation compile process in Verilator.
-   - SERV consists of multiple files and is more difficult to configure standalone.
-3. **Execution Model**:
-   - PicoRV32's native interface supports 0-wait-state and 1-wait-state standard RAM structures natively.
+```
+                +----------------------------+
+                |         PicoRV32           |
+                |        (RV32I Core)        |
+                +-------------+--------------+
+                              | CPU Native Memory Bus
+                              v
+                +----------------------------+
+                |    picorv32_apb_bridge     |
+                |        (APB3 Master)       |
+                +-------------+--------------+
+                              | APB Master Bus
+                              | (PADDR, PWDATA, PWRITE, PSEL, PENABLE)
+                              v
+             +----------------+----------------+
+             | Decode & Multiplexer            |
+             +-------+--------+--------+-------+
+                     |        |        |
+            UART PSEL|    GPIO|    Timer
+                     |    PSEL|    PSEL
+                     v        v        v
+                 +-------+ +-------+ +-------+
+                 |  APB  | |  APB  | |  APB  |
+                 | UART  | | GPIO  | | Timer |
+                 +-------+ +-------+ +-------+
+```
 
 ---
 
 ## 2. Memory Map & Address Decoding
 
-To keep core integration clean and allow direct drops of APB bridges and peripheral IPs in Phase 2, the memory bus is decoded at the top-level SoC (`soc_top.v`):
+The address space of the SoC is divided as follows:
 
 | Address Range | Target Module | Access Type | Description |
 | :--- | :--- | :---: | :--- |
 | `0x0000_0000` - `0x0000_3FFF` | `soc_ram.v` (16KB) | R/W | Main internal SRAM (Code + Data + Stack) |
-| `0x8000_0000` | Sim Console Out | Write Only | Prints low 8 bits of write data to stdout |
-| `0x8000_0004` | Sim Exit Control | Write Only | Terminates simulation and passes exit code |
+| `0x1000_0000` - `0x1000_000F` | `apb_uart_bridge.v` | R/W | APB UART peripheral (loopback stub) |
+| `0x1001_0000` - `0x1001_000F` | `apb_gpio.v` | R/W | APB GPIO register interface |
+| `0x1002_0000` - `0x1002_000F` | `apb_timer.v` | R/W | APB countdown Timer register interface |
+| `0x8000_0004` | Sim Exit Control | Write Only | Writes `1` for SUCCESS, other values for FAILURE |
 
-### Future-Proofing for Phase 2:
-- The address mapping structure leaves the ranges `0x4000_0000` to `0x7FFF_FFFF` open for APB-based peripherals (e.g. UART, GPIO, Timer) via a custom APB bridge.
-- The top-level `soc_top.v` separates the bus multiplexing logic, allowing easy integration of an APB bus bridge in place of direct mapping.
+### Peripheral Registers & Offsets
 
----
+#### 1. APB UART (`0x1000_0000`)
+- **`0x00`** (Write-only): `tx_data` - Write byte to transmit.
+- **`0x04`** (Read-only): `rx_data` - Read received loopback byte.
+- **`0x08`** (Read-only): `status` - Status flags:
+  - Bit 0: `rx_ready` (high if data is available to read)
+  - Bit 1: `tx_busy` (high if transmitter is busy)
 
-## 3. Simulator Integration Hooks
+#### 2. APB GPIO (`0x1001_0000`)
+- **`0x00`** (R/W): `gpio_out` - 32-bit output pins register.
+- **`0x04`** (Read-only): `gpio_in` - 32-bit input pins monitor.
 
-To allow automated simulation testing without complex C++ memory access code:
-1. **Console Character Output (`0x8000_0000`)**:
-   - Any write to `0x8000_0000` is decoded in Verilog. If a write strobe is active, the simulator uses standard Verilog `$write` to output the character directly to the console.
-2. **Simulation Termination (`0x8000_0004`)**:
-   - Any write to `0x8000_0004` triggers the `sim_exit_req` output to go high. The write data is latched into `sim_exit_code`.
-   - The C++ testbench (`tb_soc.cpp`) monitors `sim_exit_req` at every clock cycle. When asserted, it terminates the C++ simulation loop, reporting the exit code (`1` for SUCCESS, others for FAILURE).
-
----
-
-## 4. Clock and Reset Design
-
-- **Clock (`clk`)**: Toggled by the C++ testbench in steps. Each clock cycle consists of a falling edge and a rising edge.
-- **Reset (`resetn`)**: The CPU is active-low reset.
-  - The C++ testbench holds `resetn` low for 10 full clock cycles (20 ticks) at the start of simulation to ensure all core registers and RAM structures clear cleanly.
-  - After 10 cycles, `resetn` is asserted high to start code execution.
+#### 3. APB Timer (`0x1002_0000`)
+- **`0x00`** (R/W): `load_val` - 32-bit initial countdown reload value.
+- **`0x04`** (R/W): `running` - Bit 0 starts (`1`) or stops (`0`) the countdown.
+- **`0x08`** (Read-only): `timer_done` - Bit 0 goes high when count reaches `0`.
+- **`0x0C`** (Read-only): `count` - Exposes the current active countdown value for firmware inspection.
 
 ---
 
-## 5. Waveform Dump & Tracing
+## 3. Peripheral IP Modifications & Integration Notes
 
-- Waveform dumping is fully integrated via Verilator's VCD tracing capabilities.
-- To prevent slowing down the simulation or filling up disk space when not needed, waveform generation is gated behind the compile-time flag `VM_TRACE` and the Makefile configuration `TRACE=1`.
-- If enabled, a standard `waveform.vcd` file is generated in the simulation directory. It contains full internal traces of the CPU, memory, and top-level registers.
+To integrate your reference IPs from the bootcamp, the following modifications and custom logic were added:
+
+1. **Timer IP (`apb_timer.v`)**:
+   - **`PREADY` Addition**: Added `output wire PREADY = 1'b1;` so it interfaces cleanly with the APB3 Master Bridge (which supports slave handshaking).
+   - **Counter Read-back**: Added a register read path at offset `0x0c` to expose the internal active decrementing `count` register, satisfying the verification requirement to monitor the counter loop.
+2. **UART IP (`uart.v`)**:
+   - **Terminal Printing Redirect**: Removed the direct memory hack at `0x8000_0000`. Instead, a standard `$write("%c", tx_data); $fflush();` is placed inside `uart.v` triggered whenever `tx_write` goes high. This means writing characters to the standard UART registers naturally echoes text to the simulation stdout.
+3. **GPIO IP (`apb_gpio.v`)**:
+   - Implemented from scratch as a generic 0-wait-state APB slave register to bridge physical pin inputs/outputs.
+4. **Verilog Testbench Loopback (`tb_soc.v`)**:
+   - Simulates external board wiring by looping output pins back to inputs (`assign gpio_in = gpio_out;`). This lets the CPU write a test pattern to `gpio_out` and immediately read it back on `gpio_in` to verify correct register operation.
