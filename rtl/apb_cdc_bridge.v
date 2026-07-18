@@ -71,11 +71,16 @@ module apb_cdc_bridge (
     
     // Synchronize req_cpu (CPU domain) -> req_periph_sync (Peripheral domain)
     wire req_periph_sync;
+`ifdef BUG_INJECT_CDC_BYPASS
+    // Deliberate CDC bug: bypass synchronizer stage entirely, causing raw combinational crossing
+    assign req_periph_sync = req_cpu;
+`else
     sync2_stage sync_req (
         .clk      (clk_periph),
         .async_in (req_cpu),
         .sync_out (req_periph_sync)
     );
+`endif
 
     // Synchronize ack_periph (Peripheral domain) -> ack_cpu_sync (CPU domain)
     wire ack_cpu_sync;
@@ -203,5 +208,76 @@ module apb_cdc_bridge (
 
     // Enable clock gating when a request is active (req_cpu) or peripheral is completing the transaction (ack_periph)
     assign clk_periph_en = req_cpu || ack_periph;
+
+`ifdef ASSERTIONS_ON
+    // =========================================================================
+    // SystemVerilog Assertions (SVA) & Verification Checkers
+    // =========================================================================
+
+    // 1. req_cpu must remain stable (does not deassert/toggle) while synchronizer is settling (until ack_cpu_sync returns)
+    assert_req_stable: assert property (
+        @(posedge clk_cpu) disable iff (!rst_n_cpu)
+        (req_cpu && !ack_cpu_sync) |=> req_cpu
+    );
+
+    // 2. addr_hold, wdata_hold, write_hold must remain stable during transaction flight
+    assert_addr_stable: assert property (
+        @(posedge clk_cpu) disable iff (!rst_n_cpu)
+        (req_cpu) |=> ($stable(addr_hold) && $stable(wdata_hold) && $stable(write_hold))
+    );
+
+    // 3. Handshake ordering: req_cpu must not re-assert until previous ack_cpu_sync has cleared
+    assert_req_handshake_clear: assert property (
+        @(posedge clk_cpu) disable iff (!rst_n_cpu)
+        (ack_cpu_sync) |-> !req_cpu
+    );
+
+    // 4. APB protocol stability - CPU-side: PSEL/PADDR/PWRITE must be stable when PENABLE is asserted
+    assert_cpu_apb_stable: assert property (
+        @(posedge clk_cpu) disable iff (!rst_n_cpu)
+        (PSEL_cpu && PENABLE_cpu) |-> ($stable(PADDR_cpu) && $stable(PWRITE_cpu) && $stable(PSEL_cpu))
+    );
+
+    // 5. APB protocol stability - Periph-side: PSEL/PADDR/PWRITE must be stable when PENABLE is asserted
+    assert_periph_apb_stable: assert property (
+        @(posedge clk_periph) disable iff (!rst_n_periph)
+        (PSEL_periph && PENABLE_periph) |-> ($stable(PADDR_periph) && $stable(PWRITE_periph) && $stable(PSEL_periph))
+    );
+
+    // 6. Bounded PREADY: PREADY_periph must assert within 100 cycles of PENABLE_periph
+    // Implemented as a synthesizable Verilog counter to avoid version-specific SVA dynamic range bugs.
+    reg [7:0] pready_counter;
+    always @(posedge clk_periph or negedge rst_n_periph) begin
+        if (!rst_n_periph) begin
+            pready_counter <= 8'd0;
+        end else begin
+            if (PSEL_periph && PENABLE_periph && !PREADY_periph) begin
+                pready_counter <= pready_counter + 8'd1;
+                if (pready_counter >= 8'd100) begin
+                    $error("[SVA ERROR] PREADY failed to assert within 100 clock cycles of PENABLE!");
+                end
+            end else begin
+                pready_counter <= 8'd0;
+            end
+        end
+    end
+
+    // 7. Detect asynchronous changes on synchronizer outputs
+    always @(req_periph_sync) begin
+        if (rst_n_periph && req_cpu !== 1'bx) begin
+            if (!clk_periph) begin
+                $error("[SVA CDC ERROR] Synchronizer output req_periph_sync changed asynchronously while clk_periph is low!");
+            end
+        end
+    end
+
+    always @(ack_cpu_sync) begin
+        if (rst_n_cpu && ack_periph !== 1'bx) begin
+            if (!clk_cpu) begin
+                $error("[SVA CDC ERROR] Synchronizer output ack_cpu_sync changed asynchronously while clk_cpu is low!");
+            end
+        end
+    end
+`endif
 
 endmodule

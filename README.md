@@ -1,10 +1,8 @@
-# MicroRiv SoC (Phase 4: Low-Power Power Management & UPF)
+# MicroRiv SoC (Phase 5: Verification, Assertions & Project Wrap-up)
 
 **MicroRiv SoC** is a simulation-first RISC-V mini System-on-Chip (SoC) designed for educational and prototyping purposes.
 
-This repository contains the deliverables for **Phase 4** of the multi-phase project.
-
-The objective of Phase 4 is to incorporate dynamic **low-power clock gating** on the peripheral clock domain using a glitch-free Integrated Clock Gating (ICG) cell and layer a conceptual **Unified Power Format (UPF)** description defining the power domain intent.
+This repository contains the final deliverables for **Phase 5**, enclosing full SystemVerilog Assertions (SVA) for clock domain crossing (CDC) and APB protocol verification, regression tools, and a complete design wrap-up.
 
 ---
 
@@ -12,34 +10,35 @@ The objective of Phase 4 is to incorporate dynamic **low-power clock gating** on
 
 ```
 microriv-soc/
-├── rtl/                   # System RTL Verilog files
+├── rtl/                   # System RTL Verilog/SystemVerilog files
 │   ├── picorv32.v         # Open-source PicoRV32 RISC-V core (PD_CPU / clk_cpu)
 │   ├── picorv32_apb_bridge.v # APB3 Master Bridge (PD_CPU / clk_cpu)
 │   ├── sync2_stage.v      # 2-stage D-FF synchronizer to resolve metastability
 │   ├── clk_divider.v      # Clock divider generating raw peripheral clock
-│   ├── icg.v              # [NEW] Glitch-free latch-based clock gating cell
-│   ├── apb_cdc_bridge.v   # Level-Handshake APB3 CDC Bridge (outputs clk_periph_en)
+│   ├── icg.v              # Glitch-free latch-based clock gating cell (with assertions)
+│   ├── apb_cdc_bridge.v   # Level-Handshake APB3 CDC Bridge (with SVA assertions)
 │   ├── apb_uart_bridge.v  # APB UART register decoder (PD_PERIPH / gated_clk_periph)
 │   ├── uart.v             # UART transceiver stub (PD_PERIPH / gated_clk_periph)
 │   ├── apb_gpio.v         # 32-bit APB GPIO controller (PD_PERIPH / gated_clk_periph)
 │   ├── apb_timer.v        # 32-bit APB countdown Timer (PD_PERIPH / gated_clk_periph)
 │   ├── soc_ram.v          # 16KB Byte-enabled SRAM block (PD_CPU / clk_cpu)
-│   └── soc_top.v          # Top-level SoC wrapper instantiating clk_divider, ICG, and CDC bridge
+│   └── soc_top.v          # Top-level SoC wrapper instantiating all components
 ├── tb/                    # Testbench files
-│   └── tb_soc.v           # [UPDATED] Verilog-only testbench (counts clock edges and prints savings)
+│   └── tb_soc.v           # Verilog-only testbench (counts clock edges and reports savings)
 ├── firmware/              # Bare-metal test firmware source
 │   ├── start.S            # Startup assembly (UART, GPIO, and Timer tests)
 │   ├── sections.lds       # Linker script mapping code to memory start (0x0000_0000)
 │   └── makehex.py         # Python utility to convert binary ELF to $readmemh hex format
 ├── docs/                  # Architectural documentation
-│   └── architecture.md    # [UPDATED] Detail clock gating schemes, wakeup timings, and UPF models
-├── power.upf              # [NEW] Unified Power Format specification mapping power domains
-└── run.sh                 # Unified bash script compiling firmware, Verilator, and running simulation
+│   ├── architecture.md    # [UPDATED] Detailed clock gating, UPF domain maps, and assertions checklist
+│   └── summary.md         # [NEW] End-to-end project overview, bug logs, and synthesis next steps
+├── power.upf              # Unified Power Format specification mapping power domains
+└── run.sh                 # [UPDATED] Compile script supporting assertions and bug injection
 ```
 
 ---
 
-## 2. Power Domain Definitions (UPF)
+## 2. Power & Verification Domain Definitions (UPF)
 
 The power domains are formally defined in `power.upf` as follows:
 
@@ -50,53 +49,34 @@ The power domains are formally defined in `power.upf` as follows:
 
 ---
 
-## 3. How to Run and Verify Gating Statistics
+## 3. How to Run the Simulation
 
-1. Navigate to the `microriv-soc` root directory:
-   ```bash
-   cd microriv-soc
-   ```
-2. Execute the unified simulation script:
-   ```bash
-   ./run.sh
-   ```
-
-### Gating Savings Output
-Upon completion, the testbench counts the active rising edges of both the raw (ungated) divided clock and the gated clock, outputting the metrics to the terminal:
-```text
-==================================================================
- 3. Running Simulation
-==================================================================
-[TB] Starting Phase 4 simulation...
-[TB] Reset released. Core executing...
-Hello APB UART!
-[TB] Simulation exit requested by firmware.
-[TB] Exit code:          1
-[TB] SUCCESS: Test program completed successfully!
-==================================================================
- Clock Gating Performance Statistics (During Active Simulation)
-==================================================================
- Raw Peripheral Clock Edges:   36675
- Gated Peripheral Clock Edges: 5293
- Clock Edges Saved:            31382
- Dynamic Power Reduction:      85%
-==================================================================
+### A. Normal Functional Run
+To compile and run the baseline simulation (without assertions or bugs):
+```bash
+./run.sh
 ```
-*(Note: Edges and savings percentages may vary slightly depending on compiler optimization and cycles).*
+
+### B. Assertion-Enabled Verification Run
+To run the simulation with SystemVerilog Assertions (SVA) and checkers compiled in:
+```bash
+./run.sh --assertions
+```
+This enables SVA checks ensuring CDC data stability, handshake sequencing, clock gating pulse protection, and APB compliance.
+
+### C. Deliberate CDC Bug-Injection Run
+To prove that our verification checkers successfully catch domain-crossing bugs, execute:
+```bash
+./run.sh --assertions --inject-cdc-bug
+```
+* **What this does**: Bypasses the request synchronizer stage in `apb_cdc_bridge.v`, passing the request combinational and unsynchronized across clocks.
+* **Expected outcome**: The simulation halts immediately with the following checker assertion error:
+  `%Error: [SVA CDC ERROR] Synchronizer output req_periph_sync changed asynchronously while clk_periph is low!`
 
 ---
 
-## 4. GTKWave Verification of Gated Clocks
+## 4. Verification Checklists & Wrap-up
 
-To verify the ICG un-gating and gating transitions:
-1. Open GTKWave:
-   ```bash
-   gtkwave sim/waveform.vcd
-   ```
-2. Navigate to `tb_soc` -> `dut` -> `periph_icg`.
-3. Add the following signals to the wave trace:
-   * **`clk_in`**: The raw divided clock (always toggling).
-   * **`en`**: The clock gate enable signal (`clk_periph_en` from the CDC bridge).
-   * **`en_latch`**: The negative-latch output (locked and stable when `clk_in` is high).
-   * **`clk_out`**: The gated clock (`gated_clk_periph` feeding the peripherals).
-4. Observe that `clk_out` stays completely static (logic low) during idle periods and starts toggling cleanly (without glitches) only when `en` rises, stopping cleanly after the transaction finishes.
+Detailed documentation on implementation details, latency charts, CDC stability, and physical ASIC deployment can be found in:
+* **[SoC Architectural Specifications](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/NIELET%20Bootcamp/microriv-soc/docs/architecture.md)**
+* **[Project Final Summary & Bug Log](file:///p:/OneDrive%20-%20Amrita%20vishwa%20vidyapeetham/ASEB/NIELET%20Bootcamp/microriv-soc/docs/summary.md)**

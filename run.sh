@@ -13,6 +13,30 @@
 # Exit immediately on error
 set -e
 
+# Parse command line options
+ASSERTIONS=0
+BUG_INJECTION=0
+for arg in "$@"; do
+    case $arg in
+        --assertions)
+            ASSERTIONS=1
+            ;;
+        --inject-cdc-bug)
+            BUG_INJECTION=1
+            ;;
+    esac
+done
+
+VERILATOR_FLAGS=""
+if [ $ASSERTIONS -eq 1 ]; then
+    VERILATOR_FLAGS="$VERILATOR_FLAGS --assert -DASSERTIONS_ON"
+    echo "[RUN] SystemVerilog Assertions (SVA) are ENABLED."
+fi
+if [ $BUG_INJECTION -eq 1 ]; then
+    VERILATOR_FLAGS="$VERILATOR_FLAGS -DBUG_INJECT_CDC_BYPASS"
+    echo "[RUN] WARNING: Deliberately injecting a CDC bug (bypassing synchronizer stage)!"
+fi
+
 # Resolve directory structure relative to the script's directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RTL_DIR="$SCRIPT_DIR/rtl"
@@ -101,6 +125,7 @@ verilator --binary -j 0 -Wall -Wno-fatal \
     -Wno-UNUSEDSIGNAL \
     -Wno-BLKSEQ \
     -Wno-SYNCASYNCNET \
+    $VERILATOR_FLAGS \
     "$RTL_DIR/picorv32.v" \
     "$RTL_DIR/picorv32_apb_bridge.v" \
     "$RTL_DIR/sync2_stage.v" \

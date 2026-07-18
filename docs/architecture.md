@@ -113,3 +113,41 @@ The `power.upf` script provides a formal specification of the SoC's power intent
   * Multi-bit bus skew would cause different bits to cross the domain boundary at slightly different physical delays, leading to transient corrupted values being captured at the target slave.
 * **What happens if clock gating is performed using a raw AND gate?**
   * If the enable signal goes high or low while the raw clock is high, it will truncate the active clock pulse or insert a tiny "glitch" pulse. These narrow pulses violate the setup times of downstream registers, causing registers to lock up or latch corrupt data.
+
+---
+
+## 6. SystemVerilog Assertions (SVA) Verification Checklist (Phase 5)
+
+We have implemented SVA concurrent assertions and immediate checkers to verify design correctness under `--assertions`.
+
+| Assertion Name | Scope | Verification Goal | Failure Mode Protected |
+| :--- | :--- | :--- | :--- |
+| `assert_req_stable` | `apb_cdc_bridge` | Checks that `req_cpu` stays high until `ack_cpu_sync` is high | Prevents CPU FSM from glitching or deasserting the handshake early |
+| `assert_addr_stable` | `apb_cdc_bridge` | Verifies `addr_hold`, `wdata_hold`, `write_hold` remain static when `req_cpu` is active | Eliminates risk of bus-skew/data corruption across boundaries |
+| `assert_req_handshake_clear` | `apb_cdc_bridge` | Verifies `req_cpu` is low when `ack_cpu_sync` is high | Avoids overlapping/double handshakes |
+| `assert_cpu_apb_stable` | `apb_cdc_bridge` | Basic APB protocol: CPU `PADDR`/`PWRITE`/`PSEL` static during `PENABLE` | Catch CPU domain bus master protocol violations |
+| `assert_periph_apb_stable` | `apb_cdc_bridge` | Peripheral `PADDR`/`PWRITE`/`PSEL` static during `PENABLE` | Catch peripheral domain bus master protocol violations |
+| `pready_counter` check | `apb_cdc_bridge` | Raises `$error` if `PREADY_periph` takes >100 cycles to assert | Detects deadlocks and locked peripheral states |
+| `always @(req_periph_sync)` | `apb_cdc_bridge` | Raises `$error` if `req_periph_sync` changes when `clk_periph` is low | Detects asynchronous transitions / bypassed synchronizers |
+| `always @(ack_cpu_sync)` | `apb_cdc_bridge` | Raises `$error` if `ack_cpu_sync` changes when `clk_cpu` is low | Detects asynchronous transitions / bypassed synchronizers |
+| `assert_icg_clk_stable` | `icg` | Checks `en_latch` is stable at rising edge of `clk_in` | Guarantees latch output doesn't transition at clock edges |
+| `always @(en_latch)` | `icg` | Raises `$error` if `en_latch` changes when `clk_in` is high | Detects glitches or illegal transparency phases in the gate |
+
+---
+
+## 7. Deliberate CDC Bug Injection Testing
+
+To prove that these assertions are highly effective, we created a bug-injection configuration. Running:
+```bash
+./run.sh --assertions --inject-cdc-bug
+```
+forces `BUG_INJECT_CDC_BYPASS` to be defined.
+
+### Test Result:
+* In this configuration, the `sync2_stage` synchronizer for the request line is completely bypassed (`assign req_periph_sync = req_cpu`).
+* When `req_cpu` transitions in the CPU domain (`clk_cpu` edge), `req_periph_sync` immediately changes in the peripheral domain.
+* Since `clk_cpu` and `clk_periph` are out of phase, this change occurs when `clk_periph` is low (outside its rising edge).
+* The asynchronous change checker immediately triggers a simulation error:
+  `%Error: [SVA CDC ERROR] Synchronizer output req_periph_sync changed asynchronously while clk_periph is low!`
+* This halts the simulation, proving that the verification checks are active and prevent silent domain-crossing bugs.
+
