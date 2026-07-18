@@ -113,6 +113,9 @@ echo "=================================================================="
 echo " 3. Running Simulation"
 echo "=================================================================="
 
+# Copy compiled executable from obj_dir to sim directory
+cp "$SIM_DIR/obj_dir/sim_soc" "$SIM_DIR/sim_soc"
+
 # Execute simulation binary from within the sim directory (so firmware.hex is loaded correctly)
 cd "$SIM_DIR"
 ./sim_soc
