@@ -106,6 +106,7 @@ verilator --binary -j 0 -Wall -Wno-fatal \
     "$RTL_DIR/sync2_stage.v" \
     "$RTL_DIR/clk_divider.v" \
     "$RTL_DIR/apb_cdc_bridge.v" \
+    "$RTL_DIR/icg.v" \
     "$RTL_DIR/apb_uart_bridge.v" \
     "$RTL_DIR/uart.v" \
     "$RTL_DIR/apb_gpio.v" \

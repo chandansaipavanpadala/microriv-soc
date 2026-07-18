@@ -34,7 +34,8 @@ module apb_cdc_bridge (
     output reg          PWRITE_periph,
     output reg  [31:0]  PWDATA_periph,
     input  wire [31:0]  PRDATA_periph,
-    input  wire         PREADY_periph
+    input  wire         PREADY_periph,
+    output wire         clk_periph_en
 );
 
     // =========================================================================
@@ -199,5 +200,8 @@ module apb_cdc_bridge (
             endcase
         end
     end
+
+    // Enable clock gating when a request is active (req_cpu) or peripheral is completing the transaction (ack_periph)
+    assign clk_periph_en = req_cpu || ack_periph;
 
 endmodule

@@ -28,14 +28,23 @@ module soc_top (
 );
 
     // =========================================================================
-    // Clock Domain Generation
+    // Clock Domain Generation & Gating
     // =========================================================================
+    wire clk_periph_raw;
+    wire clk_periph_en;
     wire clk_periph;
 
-    // Instantiate clock divider to divide clk by 4 to generate clk_periph
+    // Instantiate clock divider to divide clk by 4 to generate clk_periph_raw
     clk_divider periph_clk_div (
         .clk_in  (clk),
         .rst     (!resetn),
+        .clk_out (clk_periph_raw)
+    );
+
+    // Instantiate glitch-free Integrated Clock Gate
+    icg periph_icg (
+        .clk_in  (clk_periph_raw),
+        .en      (clk_periph_en),
         .clk_out (clk_periph)
     );
 
@@ -204,7 +213,8 @@ module soc_top (
         .PWRITE_periph   (PWRITE_periph),
         .PWDATA_periph   (PWDATA_periph),
         .PRDATA_periph   (PRDATA_periph),
-        .PREADY_periph   (PREADY_periph)
+        .PREADY_periph   (PREADY_periph),
+        .clk_periph_en   (clk_periph_en)
     );
 
     // =========================================================================
