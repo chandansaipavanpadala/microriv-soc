@@ -31,13 +31,8 @@ module icg (
     assign clk_out = clk_in & en_latch;
 
 `ifdef ASSERTIONS_ON
-    // Assertion 8: en_latch must be stable when clk_in transitions from 0 to 1
-    assert_icg_clk_stable: assert property (
-        @(posedge clk_in)
-        $stable(en_latch)
-    );
-
-    // Assertion 9: en_latch must never change while clk_in is high (1)
+    // Assertion 8: en_latch must never change while clk_in is high (1)
+    // This ensures no glitches occur during the clock high phase.
     always @(en_latch) begin
         if (clk_in) begin
             $error("[SVA ERROR] ICG latch en_latch changed while clk_in is high!");

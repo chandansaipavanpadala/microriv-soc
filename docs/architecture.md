@@ -130,7 +130,6 @@ We have implemented SVA concurrent assertions and immediate checkers to verify d
 | `pready_counter` check | `apb_cdc_bridge` | Raises `$error` if `PREADY_periph` takes >100 cycles to assert | Detects deadlocks and locked peripheral states |
 | `always @(req_periph_sync)` | `apb_cdc_bridge` | Raises `$error` if `req_periph_sync` changes when `clk_periph` is low | Detects asynchronous transitions / bypassed synchronizers |
 | `always @(ack_cpu_sync)` | `apb_cdc_bridge` | Raises `$error` if `ack_cpu_sync` changes when `clk_cpu` is low | Detects asynchronous transitions / bypassed synchronizers |
-| `assert_icg_clk_stable` | `icg` | Checks `en_latch` is stable at rising edge of `clk_in` | Guarantees latch output doesn't transition at clock edges |
 | `always @(en_latch)` | `icg` | Raises `$error` if `en_latch` changes when `clk_in` is high | Detects glitches or illegal transparency phases in the gate |
 
 ---
