@@ -92,7 +92,13 @@ microriv-soc/
 ├── docs/                  # Architectural and project documentation
 │   ├── architecture.md    # Detailed block diagrams, timings, and assertions checklist
 │   ├── summary.md         # End-to-end project overview, bug logs, and synthesis next steps
+│   ├── synthesis.md       # [NEW] RTL Synthesis script mapping and mapping strategies
 │   └── screenshots/       # Directory containing waveforms and console output PNGs
+├── synth/                 # [NEW] RTL Synthesis scripts, libraries, and reports
+│   ├── gscl45nm.lib       # Target 45nm standard cell library definition
+│   ├── synth.ys           # Yosys synthesis logic optimization script
+│   ├── run_synth.sh       # Execution wrapper shell script
+│   └── reports/           # Saved gate-level cell counts and schematics
 ├── power.upf              # Unified Power Format specification mapping power domains
 └── run.sh                 # Unified compile-and-run bash shell script
 ```
@@ -120,6 +126,14 @@ Injects a deliberate CDC timing bug (bypassing the request synchronizer) and run
 ```bash
 ./run.sh --assertions --inject-cdc-bug
 ```
+
+### D. Run RTL Synthesis Flow
+Compiles and synthesizes the physical hardware modules to a 45nm standard cell gate-level netlist:
+```bash
+chmod +x synth/run_synth.sh
+./synth/run_synth.sh
+```
+*(Note: Requires Yosys. If Graphviz is installed on your environment, Yosys will also render top-level and CDC bridge schematics inside `synth/reports/`).*
 
 ---
 
@@ -174,15 +188,24 @@ We use SVA concurrent properties and synthesizable checkers to verify:
 
 ---
 
-## 8. Limitations & Synthesis Next Steps
+## 8. RTL Synthesis & Next Steps
 
-### Honest UPF Caveat
-The `power.upf` script is a **conceptual power-intent specification** for physical synthesis tools (like Synopsys Design Compiler). Verilator evaluates Verilog behaviorally and does not compile UPF power states natively. Clock gating, FSM handshaking, and clock counters are fully simulated and verified.
+We have set up a complete **Yosys synthesis flow** mapped to the 45nm `gscl45nm` library. Running `./synth/run_synth.sh` produces:
+* A gate-level Verilog netlist (`synth/netlist.v`).
+* Mapped cell count reports and latch inference logs (`synth/reports/stats.txt`).
+* Rendered schematics of `soc_top` and `apb_cdc_bridge` module topologies (`synth/reports/*.svg`).
+
+For details on cells, memory/latch mapping warnings, and gate area metrics, see the **[RTL Synthesis Report](docs/synthesis.md)**.
+
+### Honest UPF & Memory Caveats
+1. **UPF**: `power.upf` is a **conceptual power-intent specification** for ASIC synthesis tools (e.g., Design Compiler). Verilator ignores UPF power states natively. Clock gating logic and edge statistics are fully simulated and verified.
+2. **SRAM**: The 16KB SRAM block (`soc_ram.v`) is initialized with `$readmemh` in simulation, which is bypassed during synthesis using a `SYNTHESIS` preprocessor macro. Yosys infers `soc_ram` as an abstract memory block. In a physical tape-out, this is replaced by SRAM macros compiled with memory compilers or FPGA BRAM slices.
 
 ### FPGA / ASIC Path
-To deploy this SoC physically to an FPGA or compile via an open-source ASIC PDK (OpenLane):
-1. **ICG Hardware Cells**: Replace the generic transparent latch code inside `icg.v` with physical clock-gating cells from the target ASIC PDK library (e.g. `sky130_fd_sc_hd__dlcglo_*`) or FPGA clock buffers (`BUFGCE`).
-2. **Reset Synchronizer Integration**: Implement reset synchronizer circuits to ensure reset deassertion is aligned synchronously with each clock domain, preventing reset metastability.
+To tape-out this SoC or target an FPGA board:
+1. **PDK Technology Mapping**: Swap `gscl45nm.lib` with a physical silicon PDK standard cell library (e.g., SkyWater 130nm).
+2. **ICG Hardware Cells**: Replace the generic transparent latch inside `icg.v` with physical clock-gating cells from the target library (e.g., `sky130_fd_sc_hd__dlcglo_1`) or FPGA clock buffers (`BUFGCE`).
+3. **Reset Synchronizer Integration**: Add clock-aligned reset synchronizers to safely release reset across both domains.
 
 ---
 

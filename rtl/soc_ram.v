@@ -29,10 +29,12 @@ module soc_ram #(
     wire [31:0] word_idx = (addr >> 2) % WORDS;
     /* verilator lint_on UNUSEDSIGNAL */
 
-    // Load compiled firmware hex at startup
+    // Load compiled firmware hex at startup (simulation only)
+`ifndef SYNTHESIS
     initial begin
         $readmemh("firmware.hex", mem);
     end
+`endif
 
     // Memory read/write logic with 1-wait-state response
     always @(posedge clk) begin

@@ -1,0 +1,47 @@
+# Yosys synthesis script for microriv-soc
+
+# 1. Read Verilog/SystemVerilog RTL source files (SystemVerilog parsing enabled)
+read_verilog -sv ../rtl/picorv32.v
+read_verilog -sv ../rtl/soc_ram.v
+read_verilog -sv ../rtl/picorv32_apb_bridge.v
+read_verilog -sv ../rtl/sync2_stage.v
+read_verilog -sv ../rtl/clk_divider.v
+read_verilog -sv ../rtl/icg.v
+read_verilog -sv ../rtl/apb_cdc_bridge.v
+read_verilog -sv ../rtl/apb_uart_bridge.v
+read_verilog -sv ../rtl/uart.v
+read_verilog -sv ../rtl/apb_gpio.v
+read_verilog -sv ../rtl/apb_timer.v
+read_verilog -sv ../rtl/soc_top.v
+
+# 2. Check design hierarchy and set top module
+hierarchy -check -top soc_top
+
+# 3. Perform generic synthesis passes
+synth -top soc_top
+
+# 4. Map design to target standard cell library (gscl45nm)
+# Map sequential cells (flip-flops)
+dfflibmap -liberty gscl45nm.lib
+
+# Map combinational gates (using ABC)
+abc -liberty gscl45nm.lib
+
+# 5. Clean up redundant gates and wires
+clean
+
+# 6. Save synthesis reports (cell usage stats mapped to liberty cells)
+tee -o reports/stats.txt stat -liberty gscl45nm.lib
+
+# 7. Write out synthesized gate-level netlist (no attributes for clean readability)
+write_verilog -noattr netlist.v
+
+# 8. Generate schematics (renders SVG/PNG if Graphviz is installed; otherwise outputs DOT files)
+# Render top-level SoC schematic
+show -format svg -prefix reports/schematic_soc_top soc_top
+
+# Render detailed APB CDC Bridge subsystem schematic
+show -format svg -prefix reports/schematic_cdc_bridge apb_cdc_bridge
+
+# 9. Output JSON design netlists (for netlistsvg visualizer tool)
+write_json reports/schematic_soc_top.json
