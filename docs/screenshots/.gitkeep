@@ -1,0 +1,7 @@
+# Placeholder to preserve the docs/screenshots directory in Git.
+# Drop your waveform screenshots and console captures here using the following filenames:
+# 1. 01_functional_run_console.png
+# 2. 02_waveform_cdc_handshake.png
+# 3. 03_waveform_clock_gating.png
+# 4. 04_assertion_run_console.png
+# 5. 05_bug_injection_assertion_failure.png
