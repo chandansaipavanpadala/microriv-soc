@@ -39,9 +39,11 @@ module uart (
                 rx_ready <= 1'b1;
                 tx_busy  <= 1'b0; // Immediate ready (stub behavior)
                 
-                // Echo TX byte to the simulation console
+                // Echo TX byte to the simulation console (simulation only)
+`ifndef SYNTHESIS
                 $write("%c", tx_data);
                 $fflush();
+`endif
             end
         end
     end
