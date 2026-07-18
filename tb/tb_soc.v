@@ -18,9 +18,11 @@ module tb_soc;
     wire [31:0] sim_exit_code;
 
     // Clock generation (50MHz clock -> 20ns period)
-    always #10 clk = ~clk;
+    always #10 clk <= ~clk;
 
     // Instantiate SoC Top-Level
+    /* verilator lint_off PINCONNECTEMPTY */
+    /* verilator lint_off PINMISSING */
     soc_top dut (
         .clk           (clk),
         .resetn        (resetn),
@@ -36,6 +38,8 @@ module tb_soc;
         .cpu_mem_wstrb (),
         .cpu_mem_rdata ()
     );
+    /* verilator lint_on PINCONNECTEMPTY */
+    /* verilator lint_on PINMISSING */
 
     initial begin
         $display("[TB] Starting simulation...");

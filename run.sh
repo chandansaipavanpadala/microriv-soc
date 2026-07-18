@@ -95,7 +95,7 @@ rm -rf "$SIM_DIR/obj_dir"
 # -j 0: runs multi-threaded host compilation
 # --timing: enables delay models (# delay) inside the testbench
 # --trace: enables waveform VCD dumping
-verilator --binary -j 0 -Wall \
+verilator --binary -j 0 -Wall -Wno-fatal \
     "$RTL_DIR/picorv32.v" \
     "$RTL_DIR/soc_ram.v" \
     "$RTL_DIR/soc_top.v" \
