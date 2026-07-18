@@ -22,31 +22,31 @@ _start:
     jal ra, print_str
 
     # 3. GPIO Loopback test
-    # Write a test pattern to GPIO out (0x1001_0000)
-    li t0, 0x1001_0000
+    # Write a test pattern to GPIO out (0x10010000)
+    li t0, 0x10010000
     li t1, 0x5555AAAA
     sw t1, 0(t0)
 
-    # Read back from GPIO in (0x1001_0004)
-    li t2, 0x1001_0004
+    # Read back from GPIO in (0x10010004)
+    li t2, 0x10010004
     lw t3, 0(t2)
 
     # Check if loops back correctly
     bne t3, t1, fail_gpio
 
     # 4. Timer decrement test
-    # Load count down value of 100 to Timer (0x1002_0000)
-    li t0, 0x1002_0000
+    # Load count down value of 100 to Timer (0x10020000)
+    li t0, 0x10020000
     li t1, 100
     sw t1, 0(t0)
 
-    # Start the Timer (0x1002_0004)
-    li t2, 0x1002_0004
+    # Start the Timer (0x10020004)
+    li t2, 0x10020004
     li t3, 1
     sw t3, 0(t2)
 
-    # Read active counter (0x1002_000c) twice
-    li t4, 0x1002_000c
+    # Read active counter (0x1002000c) twice
+    li t4, 0x1002000c
     lw t5, 0(t4)       # Read 1
     lw t6, 0(t4)       # Read 2
 
@@ -54,22 +54,22 @@ _start:
     # If Read 2 >= Read 1 (t6 >= t5), timer countdown is broken!
     bge t6, t5, fail_timer
 
-    # 5. Success exit (write 1 to 0x8000_0004)
-    li t0, 0x8000_0004
+    # 5. Success exit (write 1 to 0x80000004)
+    li t0, 0x80000004
     li t1, 1
     sw t1, 0(t0)
     j hang
 
 fail_gpio:
-    # GPIO Failure exit (write 2 to 0x8000_0004)
-    li t0, 0x8000_0004
+    # GPIO Failure exit (write 2 to 0x80000004)
+    li t0, 0x80000004
     li t1, 2
     sw t1, 0(t0)
     j hang
 
 fail_timer:
-    # Timer Failure exit (write 3 to 0x8000_0004)
-    li t0, 0x8000_0004
+    # Timer Failure exit (write 3 to 0x80000004)
+    li t0, 0x80000004
     li t1, 3
     sw t1, 0(t0)
     j hang
@@ -84,8 +84,8 @@ hang:
 # Inputs: a0 - Address of the string
 # Modifies: t0, t1, t2, t3
 print_str:
-    li t0, 0x1000_0008  # Status register address
-    li t1, 0x1000_0000  # TX register address
+    li t0, 0x10000008  # Status register address
+    li t1, 0x10000000  # TX register address
 print_loop:
     lb t2, 0(a0)        # Load next character byte
     beqz t2, print_done # Exit loop if null-terminator
