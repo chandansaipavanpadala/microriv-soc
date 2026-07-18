@@ -96,6 +96,10 @@ rm -rf "$SIM_DIR/obj_dir"
 # --timing: enables delay models (# delay) inside the testbench
 # --trace: enables waveform VCD dumping
 verilator --binary -j 0 -Wall -Wno-fatal \
+    -Wno-DECLFILENAME \
+    -Wno-GENUNNAMED \
+    -Wno-UNUSEDSIGNAL \
+    -Wno-BLKSEQ \
     "$RTL_DIR/picorv32.v" \
     "$RTL_DIR/picorv32_apb_bridge.v" \
     "$RTL_DIR/apb_uart_bridge.v" \

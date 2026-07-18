@@ -46,10 +46,13 @@ module tb_soc;
     /* verilator lint_on PINCONNECTEMPTY */
     /* verilator lint_on PINMISSING */
 
+    reg sim_started;
+
     initial begin
         $display("[TB] Starting Phase 2 simulation...");
         clk = 0;
         resetn = 0;
+        sim_started = 0;
 
         // Set up wave tracing
         $dumpfile("waveform.vcd");
@@ -58,12 +61,14 @@ module tb_soc;
         // Reset sequence (hold reset low for 100 ns)
         #100;
         resetn = 1;
+        #20;
+        sim_started = 1;
         $display("[TB] Reset released. Core executing...");
     end
 
     // Monitor exit conditions
     always @(posedge clk) begin
-        if (resetn) begin
+        if (sim_started) begin
             if (trap) begin
                 $display("[TB] ERROR: CPU Trap asserted! Halting simulation.");
                 $finish;
