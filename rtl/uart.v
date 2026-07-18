@@ -20,7 +20,9 @@ module uart (
     output reg        tx_busy
 );
 
+    /* verilator lint_off UNUSEDSIGNAL */
     reg [7:0] tx_reg;
+    /* verilator lint_on UNUSEDSIGNAL */
 
     always @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin

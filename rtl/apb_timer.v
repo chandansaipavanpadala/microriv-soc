@@ -45,6 +45,7 @@ module apb_timer #(
             case (PADDR)
                 8'h00: load_val <= PWDATA[WIDTH-1:0];
                 8'h04: running  <= PWDATA[0];
+                default: ; // Do nothing
             endcase
         end
     end

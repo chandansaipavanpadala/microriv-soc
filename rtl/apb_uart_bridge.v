@@ -12,8 +12,10 @@
 module apb_uart_bridge (
     input  wire        clk,
     input  wire        rst_n,
+    /* verilator lint_off UNUSEDSIGNAL */
     input  wire [31:0] PADDR,
     input  wire [31:0] PWDATA,
+    /* verilator lint_on UNUSEDSIGNAL */
     input  wire        PWRITE,
     input  wire        PSEL,
     input  wire        PENABLE,

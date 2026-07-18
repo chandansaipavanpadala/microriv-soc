@@ -20,7 +20,9 @@ module tb_soc;
     // GPIO and Timer external signals
     wire [31:0] gpio_out;
     wire [31:0] gpio_in;
+    /* verilator lint_off UNUSEDSIGNAL */
     wire        timer_done;
+    /* verilator lint_on UNUSEDSIGNAL */
 
     // Simulate physical loopback on GPIO pins (Input = Output)
     assign gpio_in = gpio_out;

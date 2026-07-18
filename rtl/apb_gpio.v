@@ -35,6 +35,7 @@ module apb_gpio (
         end else if (PSEL && PENABLE && PWRITE) begin
             case (PADDR[7:0])
                 8'h00: gpio_out <= PWDATA; // Update outputs
+                default: ; // Do nothing
             endcase
         end
     end

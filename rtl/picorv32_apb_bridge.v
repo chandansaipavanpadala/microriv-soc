@@ -53,7 +53,7 @@ module picorv32_apb_bridge (
             
             case (state)
                 STATE_IDLE: begin
-                    if (mem_valid) begin
+                    if (mem_valid && !mem_ready) begin
                         state   <= STATE_SETUP;
                         PSEL    <= 1'b1;
                         PADDR   <= mem_addr;
