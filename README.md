@@ -173,6 +173,7 @@ chmod +x synth/run_synth.sh
 | **Verilator `SYNCASYNCNET` Linter Warning** | Phase 2 / 3 | Testbench exit monitoring logic sampled `resetn` directly across asynchronous domain regions. | Added a separate clock-aligned `sim_started` register in `tb_soc.v` to gate the exit condition checker. |
 | **ICG Latch Assert Fails** | Phase 5 | Assertion 8 incorrectly compared latch value changes across clock cycles (`$stable` check), failing when clock gating transitioned. | Removed the cycle-to-cycle check, relying on Assertion 9 which checks that latch output remains static while the clock is high. |
 | **Handshake Implication Assert Fails** | Phase 5 | Handshake assert verified `req_cpu == 0` during the same cycle `ack_cpu_sync` went high, violating FSM sequential delay. | Modified assertion to `(ack_cpu_sync && !req_cpu) |=> !req_cpu` to evaluate correctly on FSM cleanup state. |
+| **Yosys `$fflush` Compilation Error** | Synthesis | Yosys synthesis compiler does not support simulation-only system tasks like `$write` and `$fflush`, resulting in compilation failure. | Wrapped the simulator output logic in `rtl/uart.v` with an `ifndef SYNTHESIS` preprocessor macro. |
 
 ---
 
