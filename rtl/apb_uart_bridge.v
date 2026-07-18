@@ -23,11 +23,15 @@ module apb_uart_bridge (
     output reg         PREADY
 );
 
-    reg  [7:0] tx_data;
-    reg        tx_write;
+    wire [7:0] tx_data;
+    wire       tx_write;
     wire [7:0] rx_data;
     wire       rx_ready;
     wire       tx_busy;
+
+    // tx_write is active only on the clock edge where the write completes
+    assign tx_write = PSEL && PENABLE && PWRITE && PREADY;
+    assign tx_data  = PWDATA[7:0];
 
     // Instantiate UART transceiver stub
     uart uart_inst (
@@ -45,27 +49,13 @@ module apb_uart_bridge (
         if (!rst_n) begin
             PREADY   <= 1'b0;
             PRDATA   <= 32'h0000_0000;
-            tx_data  <= 8'h00;
-            tx_write <= 1'b0;
         end else begin
             PREADY   <= 1'b0;
-            tx_write <= 1'b0;
             
             if (PSEL && PENABLE) begin
                 PREADY <= 1'b1;
                 
-                if (PWRITE) begin
-                    case (PADDR[7:0])
-                        8'h00: begin
-                            tx_data  <= PWDATA[7:0];
-                            tx_write <= 1'b1;
-                        end
-                        default: begin
-                            tx_data  <= 8'h00;
-                            tx_write <= 1'b0;
-                        end
-                    endcase
-                end else begin
+                if (!PWRITE) begin
                     case (PADDR[7:0])
                         8'h04: PRDATA <= {24'h000000, rx_data};              // RX data register
                         8'h08: PRDATA <= {30'b0, tx_busy, rx_ready};          // UART status register
