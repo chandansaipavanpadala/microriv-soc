@@ -3,9 +3,11 @@
  *
  *  Copyright (C) 2026
  *
- *  Description: Top-level SoC wrapper. Integrates the PicoRV32 core,
- *               an APB Master Bridge, 16KB internal SRAM, and three APB slaves:
- *               UART (status/loopback), GPIO, and countdown Timer.
+ *  Description: Top-level SoC wrapper. Clock domains are split:
+ *               1. clk_cpu (CPU domain) runs PicoRV32, SRAM, and APB Master Bridge.
+ *               2. clk_periph (Peripheral domain, divided-by-4) runs UART, GPIO,
+ *                  and countdown Timer.
+ *               Boundary crossing is synchronized via apb_cdc_bridge.
  */
 
 `timescale 1 ns / 1 ps
@@ -24,6 +26,18 @@ module soc_top (
     input      [31:0] gpio_in,
     output            timer_done
 );
+
+    // =========================================================================
+    // Clock Domain Generation
+    // =========================================================================
+    wire clk_periph;
+
+    // Instantiate clock divider to divide clk by 4 to generate clk_periph
+    clk_divider periph_clk_div (
+        .clk_in  (clk),
+        .rst     (!resetn),
+        .clk_out (clk_periph)
+    );
 
     // =========================================================================
     // Internal Wires
@@ -83,7 +97,7 @@ module soc_top (
                            32'h0000_0000;
 
     // =========================================================================
-    // PicoRV32 Core Instantiation
+    // PicoRV32 Core Instantiation (CPU Domain - clk)
     // =========================================================================
     /* verilator lint_off PINCONNECTEMPTY */
     /* verilator lint_off PINMISSING */
@@ -113,7 +127,7 @@ module soc_top (
     /* verilator lint_on PINMISSING */
 
     // =========================================================================
-    // System SRAM Instantiation (16KB)
+    // System SRAM Instantiation (16KB) (CPU Domain - clk)
     // =========================================================================
     soc_ram #(
         .MEM_SIZE(16384)
@@ -129,17 +143,19 @@ module soc_top (
     );
 
     // =========================================================================
-    // APB Interconnect and Peripheral Buses
+    // APB Interconnect and CDC Crossing
     // =========================================================================
-    wire [31:0] PADDR;
-    wire        PSEL;
-    wire        PENABLE;
-    wire        PWRITE;
-    wire [31:0] PWDATA;
-    wire [31:0] PRDATA;
-    wire        PREADY;
+    
+    // CPU Domain APB signals (connect Master Bridge to CDC input)
+    wire [31:0] PADDR_cpu;
+    wire        PSEL_cpu;
+    wire        PENABLE_cpu;
+    wire        PWRITE_cpu;
+    wire [31:0] PWDATA_cpu;
+    wire [31:0] PRDATA_cpu;
+    wire        PREADY_cpu;
 
-    // Instantiate Master APB Bridge
+    // Instantiate Master APB Bridge (in CPU domain)
     picorv32_apb_bridge apb_master (
         .clk       (clk),
         .rst_n     (resetn),
@@ -150,22 +166,53 @@ module soc_top (
         .mem_wstrb (cpu_mem_wstrb),
         .mem_rdata (apb_bridge_rdata),
         
-        .PADDR     (PADDR),
-        .PSEL      (PSEL),
-        .PENABLE   (PENABLE),
-        .PWRITE    (PWRITE),
-        .PWDATA    (PWDATA),
-        .PRDATA    (PRDATA),
-        .PREADY    (PREADY)
+        .PADDR     (PADDR_cpu),
+        .PSEL      (PSEL_cpu),
+        .PENABLE   (PENABLE_cpu),
+        .PWRITE    (PWRITE_cpu),
+        .PWDATA    (PWDATA_cpu),
+        .PRDATA    (PRDATA_cpu),
+        .PREADY    (PREADY_cpu)
     );
 
-    // Slave select decoding based on address mapping:
-    // PADDR[19:16] = 0x0 -> UART (0x1000_0000)
-    // PADDR[19:16] = 0x1 -> GPIO (0x1001_0000)
-    // PADDR[19:16] = 0x2 -> Timer (0x1002_0000)
-    wire psel_uart  = PSEL && (PADDR[19:16] == 4'h0);
-    wire psel_gpio  = PSEL && (PADDR[19:16] == 4'h1);
-    wire psel_timer = PSEL && (PADDR[19:16] == 4'h2);
+    // Peripheral Domain APB signals (connect CDC output to Slaves)
+    wire [31:0] PADDR_periph;
+    wire        PSEL_periph;
+    wire        PENABLE_periph;
+    wire        PWRITE_periph;
+    wire [31:0] PWDATA_periph;
+    wire [31:0] PRDATA_periph;
+    wire        PREADY_periph;
+
+    // Instantiate Level-Handshake CDC Bridge between CPU and Peripheral domains
+    apb_cdc_bridge apb_cdc (
+        .clk_cpu         (clk),
+        .rst_n_cpu       (resetn),
+        .PADDR_cpu       (PADDR_cpu),
+        .PSEL_cpu        (PSEL_cpu),
+        .PENABLE_cpu     (PENABLE_cpu),
+        .PWRITE_cpu      (PWRITE_cpu),
+        .PWDATA_cpu      (PWDATA_cpu),
+        .PRDATA_cpu      (PRDATA_cpu),
+        .PREADY_cpu      (PREADY_cpu),
+
+        .clk_periph      (clk_periph),
+        .rst_n_periph    (resetn),
+        .PADDR_periph    (PADDR_periph),
+        .PSEL_periph     (PSEL_periph),
+        .PENABLE_periph  (PENABLE_periph),
+        .PWRITE_periph   (PWRITE_periph),
+        .PWDATA_periph   (PWDATA_periph),
+        .PRDATA_periph   (PRDATA_periph),
+        .PREADY_periph   (PREADY_periph)
+    );
+
+    // =========================================================================
+    // APB Slave Select Decoding (Peripheral Domain - clk_periph)
+    // =========================================================================
+    wire psel_uart  = PSEL_periph && (PADDR_periph[19:16] == 4'h0);
+    wire psel_gpio  = PSEL_periph && (PADDR_periph[19:16] == 4'h1);
+    wire psel_timer = PSEL_periph && (PADDR_periph[19:16] == 4'h2);
 
     wire [31:0] prdata_uart;
     wire        pready_uart;
@@ -176,43 +223,43 @@ module soc_top (
     wire [31:0] prdata_timer;
     wire        pready_timer;
 
-    // Multiplex peripheral responses back to APB Master
-    assign PRDATA = psel_uart  ? prdata_uart  :
-                    psel_gpio  ? prdata_gpio  :
-                    psel_timer ? prdata_timer :
-                    32'h0000_0000;
+    // Multiplex peripheral responses back to APB CDC Bridge
+    assign PRDATA_periph = psel_uart  ? prdata_uart  :
+                           psel_gpio  ? prdata_gpio  :
+                           psel_timer ? prdata_timer :
+                           32'h0000_0000;
 
-    assign PREADY = psel_uart  ? pready_uart  :
-                    psel_gpio  ? pready_gpio  :
-                    psel_timer ? pready_timer :
-                    1'b1; // Default ready for unmapped APB accesses
+    assign PREADY_periph = psel_uart  ? pready_uart  :
+                           psel_gpio  ? pready_gpio  :
+                           psel_timer ? pready_timer :
+                           1'b1; // Default ready for unmapped APB accesses
 
     // =========================================================================
-    // Peripherals Instantiations
+    // Peripherals Instantiations (Peripheral Domain - clk_periph)
     // =========================================================================
 
     // 1. APB UART Peripheral
     apb_uart_bridge uart_peripheral (
-        .clk     (clk),
+        .clk     (clk_periph),
         .rst_n   (resetn),
-        .PADDR   (PADDR),
-        .PWDATA  (PWDATA),
-        .PWRITE  (PWRITE),
+        .PADDR   (PADDR_periph),
+        .PWDATA  (PWDATA_periph),
+        .PWRITE  (PWRITE_periph),
         .PSEL    (psel_uart),
-        .PENABLE (PENABLE),
+        .PENABLE (PENABLE_periph),
         .PRDATA  (prdata_uart),
         .PREADY  (pready_uart)
     );
 
     // 2. APB GPIO Peripheral
     apb_gpio gpio_peripheral (
-        .PCLK     (clk),
+        .PCLK     (clk_periph),
         .PRESETn  (resetn),
         .PSEL     (psel_gpio),
-        .PENABLE  (PENABLE),
-        .PWRITE   (PWRITE),
-        .PADDR    (PADDR[7:0]),
-        .PWDATA   (PWDATA),
+        .PENABLE  (PENABLE_periph),
+        .PWRITE   (PWRITE_periph),
+        .PADDR    (PADDR_periph[7:0]),
+        .PWDATA   (PWDATA_periph),
         .PRDATA   (prdata_gpio),
         .PREADY   (pready_gpio),
         .gpio_out (gpio_out),
@@ -223,13 +270,13 @@ module soc_top (
     apb_timer #(
         .WIDTH(32)
     ) timer_peripheral (
-        .PCLK       (clk),
+        .PCLK       (clk_periph),
         .PRESETn    (resetn),
         .PSEL       (psel_timer),
-        .PENABLE    (PENABLE),
-        .PWRITE     (PWRITE),
-        .PADDR      (PADDR[7:0]),
-        .PWDATA     (PWDATA),
+        .PENABLE    (PENABLE_periph),
+        .PWRITE     (PWRITE_periph),
+        .PADDR      (PADDR_periph[7:0]),
+        .PWDATA     (PWDATA_periph),
         .PRDATA     (prdata_timer),
         .PREADY     (pready_timer),
         .timer_done (timer_done)

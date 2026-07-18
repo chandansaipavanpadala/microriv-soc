@@ -100,8 +100,12 @@ verilator --binary -j 0 -Wall -Wno-fatal \
     -Wno-GENUNNAMED \
     -Wno-UNUSEDSIGNAL \
     -Wno-BLKSEQ \
+    -Wno-SYNCASYNCNET \
     "$RTL_DIR/picorv32.v" \
     "$RTL_DIR/picorv32_apb_bridge.v" \
+    "$RTL_DIR/sync2_stage.v" \
+    "$RTL_DIR/clk_divider.v" \
+    "$RTL_DIR/apb_cdc_bridge.v" \
     "$RTL_DIR/apb_uart_bridge.v" \
     "$RTL_DIR/uart.v" \
     "$RTL_DIR/apb_gpio.v" \
